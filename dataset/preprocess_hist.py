@@ -5,15 +5,60 @@ import matplotlib.pyplot as plt
 from typing import Tuple, Callable
 
 
-def get_unique(indexes: list, indx_func: Callable[[tuple], tuple]) -> Tuple[list, set, dict]:
-    target_indexes = [indx_func(indx) for indx in indexes]
+def get_unique(
+        indexes: list,
+        index_func: Callable[[tuple], tuple]
+) -> Tuple[list, set, dict]:
+    """Get unique objects.
+
+    Parameters
+    ----------
+    indexes : `list`
+        List of dataset folders indexes.
+    index_func : `Callable`
+        Function that define the folder index slice method to describes object
+        index.
+
+    Returns
+    -------
+    target_indexes : `list`
+        List of indexes processed by index function.
+    unique : `set`
+        Set of unique objects indexes due to index function.
+    code_in : `dict`
+        Unique objects code.
+    """
+    target_indexes = [index_func(indx) for indx in indexes]
     unique = set(target_indexes)
     rng = range(len(unique))
     code_in = {instnc: cd for instnc, cd in zip(unique, rng)}
     return target_indexes, unique, code_in
 
 
-def get_hist_data(ds_path: str, folders: list, t_indexes: list, code_in: dict):
+def get_hist_data(
+        ds_path: str,
+        folders: list,
+        t_indexes: list,
+        code_in: dict
+) -> list:
+    """Get histogram format data on images.
+
+    Parameters
+    ----------
+    ds_path : `str`
+        Dataset path.
+    folders : `list`
+        List of folders names.
+    t_indexes : `list`
+        Objects indexes.
+    code_in : `dict`
+        Objects indexes code.
+
+    Returns
+    -------
+    hist_data : `list`
+        List of histogram data format.
+    """
     hist_data = []
     iterator = tqdm(zip(folders, t_indexes), total=len(folders))
     for fold, indx in iterator:
@@ -23,7 +68,14 @@ def get_hist_data(ds_path: str, folders: list, t_indexes: list, code_in: dict):
     return hist_data
 
 
-def plot_hist(hist_data, unique, title, xlabel, ylim: Tuple[int, int] = None) -> None:
+def plot_hist(
+        hist_data: list,
+        unique: set,
+        title: str,
+        xlabel: str,
+        ylim: Tuple[int, int] = None
+) -> None:
+    """Plots histogram."""
     bins = range(len(unique))
     fig, ax = plt.subplots(figsize=(9, 3))
     ax.set_title(title, fontsize=15)

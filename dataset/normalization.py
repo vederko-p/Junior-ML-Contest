@@ -7,12 +7,14 @@ from tqdm.notebook import tqdm
 
 
 def get_normalize_params(ds_path: str) -> Tuple[float, float]:
+    """Returns params for images normalization from collected images."""
     images_paths = collect_images(ds_path)
     params = evaluate_params(images_paths)
     return params
 
 
 def collect_images(ds_path: str) -> list:
+    """Returns paths of all dataset images."""
     print('\nCollecting images')
     folders = os.listdir(ds_path)
     imgs_paths_total = []
@@ -25,6 +27,7 @@ def collect_images(ds_path: str) -> list:
 
 
 def evaluate_params(images_paths: list) -> Tuple[float, float]:
+    """Returns params for images normalization."""
     print('\nEvaluating params')
     mean_wh_list = []
     std_wh_list = []
