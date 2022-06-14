@@ -104,7 +104,7 @@ def bytes_format(sb: int) -> Tuple[float, str]:
 
 def user_call(s, tag) -> bool:
     """Ask user to complete sampling due to needed free space."""
-    text = f'{s} {tag} of free space are needed to complete sampling.' \
+    text = f'{s} {tag} of free space are needed to complete sampling. ' \
            f'Sample? [y/n]: '
     while True:
         inp = input(text)
