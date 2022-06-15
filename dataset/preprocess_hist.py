@@ -76,7 +76,7 @@ def plot_hist(
         ylim: Tuple[int, int] = None
 ) -> None:
     """Plots histogram."""
-    bins = range(len(unique))
+    bins = range(len(unique)+1)
     fig, ax = plt.subplots(figsize=(9, 3))
     ax.set_title(title, fontsize=15)
     ax.set_xlabel(xlabel, fontsize=13)
