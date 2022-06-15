@@ -3,20 +3,21 @@ import os
 import shutil
 import random
 from math import ceil
-from typing import Tuple
+from typing import Tuple, Callable
 from tqdm.notebook import tqdm
 from collections import defaultdict
 from dataset import indexing
 
 
-def sample_data_by_marks(
+def sample_data(
         ds_path: str,
         output_path: str,
+        index_func: Callable[[tuple], tuple],
         min_th: int = 1000,
         max_th: int = None,
-        random_state: int = None
+        random_state: int = None,
 ) -> dict:
-    """Random sample images from dataset by marks.
+    """Random sample images from dataset by index.
 
     Parameters
     ----------
@@ -24,6 +25,9 @@ def sample_data_by_marks(
         Dataset path.
     output_path : `str`
         Path for sampled dataset output.
+    index_func : `Callable`
+        Function that define the folder index slice method to describes object
+        index.
     min_th, max_th : `int`, `int`
         Minimal and maximal thresholds values of images amount to sample.
     random_state : `int`
@@ -32,47 +36,50 @@ def sample_data_by_marks(
     Returns
     -------
     sampled_images : `dict`
-        Dict os sampled images: {mark: images}.
+        Dict os sampled images: {mark / mark+model: images}.
     """
     folders = os.listdir(ds_path)
     indexes = indexing.get_indexes(folders)
-    imgs_by_marks = collect_imgs_by_marks(ds_path, folders, indexes)
-    sampled_imgs_by_marks = sample_imgs_bm(imgs_by_marks,
-                                           min_th, max_th,
-                                           random_state)
-    user_answer = check_size(sampled_imgs_by_marks)
+    collected_images = collect_images(ds_path, folders, indexes, index_func)
+    sampled_images = sample_images(collected_images,
+                                   min_th, max_th,
+                                   random_state)
+    user_answer = check_size(sampled_images)
     if user_answer:
-        make_images_copy(sampled_imgs_by_marks, output_path)
-    return sampled_imgs_by_marks
+        make_images_copy(sampled_images, output_path)
+    return sampled_images
 
 
-def collect_imgs_by_marks(ds_path: str,
-                          folders: list,
-                          indexes: list) -> defaultdict:
-    """Collect images by marks from dataset."""
+def collect_images(
+        ds_path: str,
+        folders: list,
+        indexes: list,
+        index_func: Callable[[tuple], tuple]
+) -> defaultdict:
+    """Collect images by index."""
     imgs_by_marks = defaultdict(list)
     iterator = tqdm(zip(folders, indexes), total=len(folders))
     for fold_n, indx in iterator:
         imgs_loc_path = os.path.join(ds_path, fold_n)
         imgs_paths = os.listdir(imgs_loc_path)
         imgs_gl_paths = [os.path.join(imgs_loc_path, ilp) for ilp in imgs_paths]
-        imgs_by_marks[indx[0]].extend(imgs_gl_paths)
+        imgs_by_marks[index_func(indx)].extend(imgs_gl_paths)
     return imgs_by_marks
 
 
-def sample_imgs_bm(imgs_by_marks: dict,
-                   min_th: int = 1000,
-                   max_th: int = None,
-                   random_state: int = None) -> defaultdict:
-    """Sample images within each mark."""
-    sampled_imgs = defaultdict(list)
-    for mark, imgs in imgs_by_marks.items():
-        imgs_len = len(imgs)
-        if imgs_len > min_th:
-            q = min(imgs_len, max_th) if max_th is not None else imgs_len
+def sample_images(collected: dict,
+                  min_th: int = 1000,
+                  max_th: int = None,
+                  random_state: int = None) -> defaultdict:
+    """Sample images within each instance mark / mark+model)."""
+    sampled_images = defaultdict(list)
+    for mark, images in collected.items():
+        images_len = len(images)
+        if images_len > min_th:
+            q = min(images_len, max_th) if max_th is not None else images_len
             handle_random_state(random_state)
-            sampled_imgs[mark].extend(random.sample(imgs, q))
-    return sampled_imgs
+            sampled_images[mark].extend(random.sample(images, q))
+    return sampled_images
 
 
 def handle_random_state(random_state: int = None) -> None:
