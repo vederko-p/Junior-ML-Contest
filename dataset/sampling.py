@@ -9,11 +9,13 @@ from collections import defaultdict
 from dataset import indexing
 
 
-def sample_data(ds_path: str,
-                output_path: str,
-                min_th: int = 1000,
-                max_th: int = None,
-                random_state: int = None) -> dict:
+def sample_data_by_marks(
+        ds_path: str,
+        output_path: str,
+        min_th: int = 1000,
+        max_th: int = None,
+        random_state: int = None
+) -> dict:
     """Random sample images from dataset by marks.
 
     Parameters
