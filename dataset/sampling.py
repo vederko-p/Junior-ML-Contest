@@ -17,6 +17,7 @@ def sample_data(
         ds_path: str,
         output_path: str,
         index_func: Callable[[tuple], tuple],
+        out_folder_name: str,
         min_th: int = 1000,
         max_th: int = None,
         random_state: int = None,
@@ -32,6 +33,8 @@ def sample_data(
     index_func : `Callable`
         Function that define the folder index slice method to describes object
         index.
+    out_folder_name : `str`
+        Output folder name for sampled images.
     min_th, max_th : `int`, `int`
         Minimal and maximal thresholds values of images amount to sample.
     random_state : `int`
@@ -50,7 +53,7 @@ def sample_data(
                                    random_state)
     user_answer = check_size(sampled_images)
     if user_answer:
-        make_images_copy(sampled_images, output_path)
+        make_images_copy(sampled_images, output_path, out_folder_name)
     return sampled_images
 
 
@@ -129,10 +132,10 @@ def user_call(s, tag) -> bool:
             print('type either "y" or "n".')
 
 
-def make_images_copy(imgs: dict, output_path: str) -> None:
+def make_images_copy(imgs: dict, output_path: str, folder_name: str) -> None:
     """Copy folders and images into new dataset folder."""
     folders = collect_folders(imgs)
-    output_folderpath = os.path.join(output_path, 'data_sampled')
+    output_folderpath = os.path.join(output_path, folder_name)
     create_folders(output_folderpath, folders)
     copy_images(output_folderpath, imgs)
 
@@ -169,11 +172,13 @@ def imgs_distr_for_models(
     ds_path: str,
     xlim: Tuple[int, int] = None
 ) -> None:
+    """Prepare data and plot images amount distribution for models."""
     distr_data = get_imgs_distr_m_data(ds_path)
     plot_distr_m(distr_data, xlim=xlim)
 
 
 def get_imgs_distr_m_data(ds_path: str) -> list:
+    """Prepare data to plot images amount distribution."""
     def indx_f(index):
         return index[0], index[1]
 
@@ -190,6 +195,7 @@ def get_imgs_distr_m_data(ds_path: str) -> list:
 
 
 def plot_distr_m(distr_data: list, xlim: Tuple[int, int] = None):
+    """Plot images amount distribution by models."""
     bins = range(max(distr_data) + 1)
     median = np.median(distr_data).round(2)
     fig, ax = plt.subplots(figsize=(9, 4))
