@@ -168,33 +168,42 @@ def copy_images(output_fp, imgs: dict) -> None:
             shutil.copy(ip, img_out_path)
 
 
-def imgs_distr_for_models(
+def imgs_distr(
     ds_path: str,
+    index_func: Callable[[tuple], tuple],
     xlim: Tuple[int, int] = None
 ) -> None:
     """Prepare data and plot images amount distribution for models."""
-    distr_data = get_imgs_distr_m_data(ds_path)
-    plot_distr_m(distr_data, xlim=xlim)
+    distr_data = get_imgs_distr_data(ds_path, index_func)
+    plot_distr(distr_data, xlim=xlim)
 
 
-def get_imgs_distr_m_data(ds_path: str) -> list:
+def get_imgs_distr_data(
+        ds_path: str,
+        index_func: Callable[[tuple], tuple]
+) -> list:
     """Prepare data to plot images amount distribution."""
-    def indx_f(index):
-        return index[0], index[1]
+    models_counter = objects_counter(ds_path, index_func)
+    res = list(models_counter.values())
+    return res
 
+
+def objects_counter(
+        ds_path: str,
+        index_func: Callable[[tuple], tuple]
+) -> defaultdict:
     folders = os.listdir(ds_path)
-    indexes = [indx_f(indx) for indx in indexing.get_indexes(folders)]
+    indexes = [index_func(indx) for indx in indexing.get_indexes(folders)]
     counter = defaultdict(int)
     iterator = tqdm(zip(folders, indexes), total=len(folders))
     for fold, indx in iterator:
         imgs_loc_path = os.path.join(ds_path, fold)
         imgs_len = len(os.listdir(imgs_loc_path))
         counter[indx] += imgs_len
-    res = list(counter.values())
-    return res
+    return counter
 
 
-def plot_distr_m(distr_data: list, xlim: Tuple[int, int] = None):
+def plot_distr(distr_data: list, xlim: Tuple[int, int] = None):
     """Plot images amount distribution by models."""
     bins = range(max(distr_data) + 1)
     median = np.median(distr_data).round(2)
