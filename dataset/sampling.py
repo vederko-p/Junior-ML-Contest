@@ -1,11 +1,15 @@
 
 import os
 import shutil
+
 import random
 from math import ceil
-from typing import Tuple, Callable
-from tqdm.notebook import tqdm
 from collections import defaultdict
+from typing import Tuple, Callable
+
+from tqdm.notebook import tqdm
+import numpy as np
+import matplotlib.pyplot as plt
 from dataset import indexing
 
 
@@ -159,3 +163,41 @@ def copy_images(output_fp, imgs: dict) -> None:
             img_name = os.path.split(ip)[-1]
             img_out_path = os.path.join(output_fp, img_folder, img_name)
             shutil.copy(ip, img_out_path)
+
+
+def imgs_distr_for_models(
+    ds_path: str,
+    xlim: Tuple[int, int] = None
+) -> None:
+    distr_data = get_imgs_distr_m_data(ds_path)
+    plot_distr_m(distr_data, xlim=xlim)
+
+
+def get_imgs_distr_m_data(ds_path: str) -> list:
+    def indx_f(index):
+        return index[0], index[1]
+
+    folders = os.listdir(ds_path)
+    indexes = [indx_f(indx) for indx in indexing.get_indexes(folders)]
+    counter = defaultdict(int)
+    iterator = tqdm(zip(folders, indexes), total=len(folders))
+    for fold, indx in iterator:
+        imgs_loc_path = os.path.join(ds_path, fold)
+        imgs_len = len(os.listdir(imgs_loc_path))
+        counter[indx] += imgs_len
+    res = list(counter.values())
+    return res
+
+
+def plot_distr_m(distr_data: list, xlim: Tuple[int, int] = None):
+    bins = range(max(distr_data) + 1)
+    median = np.median(distr_data).round(2)
+    fig, ax = plt.subplots(figsize=(9, 4))
+    ax.hist(distr_data, bins=bins, label=f'median: {median}')
+    if xlim is not None:
+        ax.set_xlim(*xlim)
+    ax.set_title('Распределение по числу изображений', fontsize=15)
+    ax.set_xlabel('Число изображений', fontsize=13)
+    ax.set_ylabel('Частота', fontsize=13)
+    plt.legend(fontsize=13)
+    plt.show()
