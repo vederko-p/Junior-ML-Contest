@@ -134,7 +134,7 @@ def collect_folders(imgs: dict) -> set:
     return folders
 
 
-def create_folders(output_fp: str, folders: list) -> None:
+def create_folders(output_fp: str, folders: set) -> None:
     """Create output folder and subfolders for images."""
     os.mkdir(output_fp)
     for fold in folders:
