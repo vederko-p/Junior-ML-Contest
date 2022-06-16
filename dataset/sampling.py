@@ -98,7 +98,7 @@ def check_size(imgs: dict) -> bool:
     """Check size of images."""
     total_bytes_size = sum(get_files_size(ips) for ips in imgs.values())
     s, tag = bytes_format(total_bytes_size)
-    user_answer = user_call(s, tag)
+    user_answer = user_call_to_copy(s, tag)
     return user_answer
 
 
@@ -118,7 +118,7 @@ def bytes_format(sb: int) -> Tuple[float, str]:
     return ceil(current_size), t
 
 
-def user_call(s, tag) -> bool:
+def user_call_to_copy(s, tag) -> bool:
     """Ask user to complete sampling due to needed free space."""
     text = f'{s} {tag} of free space are needed to complete sampling. ' \
            f'Sample? [y/n]: '
@@ -192,6 +192,7 @@ def objects_counter(
         ds_path: str,
         index_func: Callable[[tuple], tuple]
 ) -> defaultdict:
+    """Get objects counter."""
     folders = os.listdir(ds_path)
     indexes = [index_func(indx) for indx in indexing.get_indexes(folders)]
     counter = defaultdict(int)
@@ -216,3 +217,77 @@ def plot_distr(distr_data: list, xlim: Tuple[int, int] = None):
     ax.set_ylabel('Частота', fontsize=13)
     plt.legend(fontsize=13)
     plt.show()
+
+
+def filter_objects_by_th(
+    ds_path: str,
+    index_func: Callable[[tuple], tuple],
+    th: int
+) -> dict:
+    """Filter objects in dataset by threshold."""
+    counter = objects_counter(ds_path, index_func)
+    to_del = {k: v for k, v in filter(lambda x: x[1] < th, counter.items())}
+    user_answer = check_del(to_del)
+    if user_answer:
+        objects_to_del = list(to_del.keys())
+        delete_objects(ds_path, objects_to_del, index_func)
+    return to_del
+
+
+def check_del(to_del: dict) -> bool:
+    """Check is there files to delete."""
+    if to_del:
+        user_answer = user_call_to_del(to_del)
+        return user_answer
+    else:
+        print('Theres nothing to delete.')
+        return False
+
+
+def user_call_to_del(to_del: dict) -> bool:
+    """User check to delete found files."""
+    text = 'Following objects will be deleted from the dataset. Delete? [y/n] '
+    for obj, cnts in to_del.items():
+        text = text + f'\n  {obj}: {cnts} imgs'
+    while True:
+        inp = input(f'{text}\n')
+        if inp == 'y':
+            return True
+        elif inp == 'n':
+            return False
+        else:
+            print('type either "y" or "n".')
+
+
+def delete_objects(
+    ds_path: str,
+    indexes: list,
+    index_func: Callable[[tuple], tuple]
+) -> None:
+    """Delete objects in dataset that """
+    for index in indexes:
+        del_by_index(ds_path, index, index_func)
+        print(f'Object "{index}" has been deleted from dataset.')
+
+
+def del_by_index(
+    ds_path: str,
+    index_to_del: Tuple,
+    index_func: Callable[[tuple], tuple]
+) -> None:
+    """Delete dataset folders that have the given index."""
+    folders = os.listdir(ds_path)
+    indexes_t = [index_func(indx) for indx in indexing.get_indexes(folders)]
+    for fold, indx in zip(folders, indexes_t):
+        if indx == index_to_del:
+            fold_path = os.path.join(ds_path, fold)
+            delete_folder(fold_path)
+
+
+def delete_folder(folder_path: str) -> None:
+    """Delete given folder."""
+    files = os.listdir(folder_path)
+    for file in files:
+        file_path = os.path.join(folder_path, file)
+        os.remove(file_path)
+    os.rmdir(folder_path)
