@@ -64,14 +64,14 @@ def collect_images(
         index_func: Callable[[tuple], tuple]
 ) -> defaultdict:
     """Collect images by index."""
-    imgs_by_marks = defaultdict(list)
+    imgs_by_object = defaultdict(list)
     iterator = tqdm(zip(folders, indexes), total=len(folders))
     for fold_n, indx in iterator:
         imgs_loc_path = os.path.join(ds_path, fold_n)
         imgs_paths = os.listdir(imgs_loc_path)
         imgs_gl_paths = [os.path.join(imgs_loc_path, ilp) for ilp in imgs_paths]
-        imgs_by_marks[index_func(indx)].extend(imgs_gl_paths)
-    return imgs_by_marks
+        imgs_by_object[index_func(indx)].extend(imgs_gl_paths)
+    return imgs_by_object
 
 
 def sample_images(collected: dict,
@@ -132,12 +132,13 @@ def user_call_to_copy(s, tag) -> bool:
             print('type either "y" or "n".')
 
 
-def make_images_copy(imgs: dict, output_path: str, folder_name: str) -> None:
+def make_images_copy(imgs: dict, output_path: str,
+                     folder_name: str, del_from_src: bool = False) -> None:
     """Copy folders and images into new dataset folder."""
     folders = collect_folders(imgs)
     output_folderpath = os.path.join(output_path, folder_name)
     create_folders(output_folderpath, folders)
-    copy_images(output_folderpath, imgs)
+    copy_images(output_folderpath, imgs, del_from_src)
 
 
 def collect_folders(imgs: dict) -> set:
@@ -158,7 +159,7 @@ def create_folders(output_fp: str, folders: set) -> None:
         os.mkdir(fold_p)
 
 
-def copy_images(output_fp, imgs: dict) -> None:
+def copy_images(output_fp, imgs: dict, del_from_src: bool = False) -> None:
     """Copy images from source dataset to output."""
     for img_lst in tqdm(imgs.values()):
         for ip in img_lst:
@@ -166,6 +167,8 @@ def copy_images(output_fp, imgs: dict) -> None:
             img_name = os.path.split(ip)[-1]
             img_out_path = os.path.join(output_fp, img_folder, img_name)
             shutil.copy(ip, img_out_path)
+            if del_from_src:
+                os.remove(ip)
 
 
 def imgs_distr(
@@ -192,7 +195,7 @@ def objects_counter(
         ds_path: str,
         index_func: Callable[[tuple], tuple]
 ) -> defaultdict:
-    """Get objects counter."""
+    """Get objects counter due to amount of images."""
     folders = os.listdir(ds_path)
     indexes = [index_func(indx) for indx in indexing.get_indexes(folders)]
     counter = defaultdict(int)
@@ -246,7 +249,7 @@ def check_del(to_del: dict) -> bool:
 
 def user_call_to_del(to_del: dict) -> bool:
     """User check to delete found files."""
-    text = 'Following objects will be deleted from the dataset. Delete? [y/n] '
+    text = 'Following objects will be deleted from the dataset. Delete? [y/n]: '
     for obj, cnts in to_del.items():
         text = text + f'\n  {obj}: {cnts} imgs'
     while True:
@@ -291,3 +294,36 @@ def delete_folder(folder_path: str) -> None:
         file_path = os.path.join(folder_path, file)
         os.remove(file_path)
     os.rmdir(folder_path)
+
+
+def get_test_ds_from_train(
+        train_ds_path: str,
+        test_size: float,
+        output_path: str,
+        out_folder_name: str,
+        random_state: int = None
+) -> dict:
+    def marks_indx_f(x):
+        return x[0], x[1]
+
+    folders = os.listdir(train_ds_path)
+    indexes = indexing.get_indexes(folders)
+    collected_ds = collect_images(train_ds_path, folders, indexes, marks_indx_f)
+    chosen_to_test = sample_to_test(collected_ds, test_size, random_state)
+    make_images_copy(chosen_to_test, output_path,
+                     out_folder_name, del_from_src=True)
+    return chosen_to_test
+
+
+def sample_to_test(
+    collected_imgs: dict,
+    test_size: float,
+    random_state: int
+) -> dict:
+    chosen_to_test = {}
+    for mark, imgs in collected_imgs.items():
+        train_size = len(imgs)
+        test_size_int = ceil(test_size * train_size)
+        handle_random_state(random_state)
+        chosen_to_test[mark] = random.sample(imgs, test_size_int)
+    return chosen_to_test
