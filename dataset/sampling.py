@@ -303,6 +303,7 @@ def get_test_ds_from_train(
         out_folder_name: str,
         random_state: int = None
 ) -> dict:
+    """Replace sampled images from train to test dataset."""
     def marks_indx_f(x):
         return x[0], x[1]
 
@@ -320,6 +321,7 @@ def sample_to_test(
     test_size: float,
     random_state: int
 ) -> dict:
+    """Sample images to create test dataset."""
     chosen_to_test = {}
     for mark, imgs in collected_imgs.items():
         train_size = len(imgs)
