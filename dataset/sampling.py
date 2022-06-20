@@ -10,8 +10,8 @@ from typing import Tuple, Callable
 from tqdm.notebook import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
-from dataset import indexing
 
+from dataset import indexing
 import dataset.utils.handle_random_state as hrs
 
 
