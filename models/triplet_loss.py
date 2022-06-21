@@ -4,7 +4,6 @@ from tqdm.notebook import tqdm
 
 import torch
 from torch.utils.data import DataLoader
-import IPython.display as IPy_disp
 
 from models.utils.base_model import BaseModel
 from models.utils.tml_mse_loss import TMLMSELoss
@@ -17,11 +16,6 @@ from torch.nn import Flatten
 from torch.nn import Softmax
 from torch.nn import BatchNorm1d
 from torch.nn import Dropout
-
-from model_selection.metrics import CustomAccuracy
-from model_selection.metrics import CustomVarianceCriteria
-
-# from models.utils.tl_dataloader import TripletLossDataloader
 
 
 class ConvBlock(nnModule):
@@ -143,10 +137,8 @@ class TripletLossModel(BaseModel):
         vect00 = self.conv2Dfeatures.forward(x)
         vect01 = self.fully_connect.forward(vect00)
         return vect01
-    
-    # Обучение на скорую руку:
-    def fit(self, dataset, epochs, wheights_path, batch_size=32,
-            validation_ds=None, vectorizer=None, flag='marka'):
+
+    def fit(self, dataset, epochs, batch_size=32):
         dataloader = DataLoader(dataset, batch_size=32)
         epochs_iter = tqdm(range(epochs), desc='epoch')
         for epoch in epochs_iter:
@@ -205,14 +197,8 @@ class ClassificationForTLModel(BaseModel):
         vect00 = self.conv2Dfeatures.forward(x)
         vect01 = self.fully_connect.forward(vect00)
         return vect01
-        
-    # Обучение на скорую руку:
-    def fit(self, dataset, epochs, weights_path, batch_size=32, validation_ds=None):
-        # должно быть в экземпляре класса CallBack() или где-то там:
-        acc = CustomAccuracy()
-        max_val_acc = 0
-        min_val_loss = 1e8
-        # в целом норм:
+
+    def fit(self, dataset, epochs, batch_size=32):
         dataloader = DataLoader(dataset, batch_size=batch_size,
                                 shuffle=True, drop_last=True)
         epochs_iter = tqdm(range(epochs), desc='epoch')
