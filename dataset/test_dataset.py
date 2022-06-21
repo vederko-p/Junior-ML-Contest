@@ -10,7 +10,7 @@ import dataset.utils.handle_random_state as hrs
 
 
 def classify_ds_test(ds: TLClassifyDataset,
-                     n: int, figsize_sq: int = 3,
+                     n_rows: int, figsize_sq: int = 3,
                      add_to_title: list = None,
                      lines_span: int = 1,
                      imgs_indexes: list = None) -> None:
@@ -20,7 +20,7 @@ def classify_ds_test(ds: TLClassifyDataset,
     ----------
     ds : `TLClassifyDataset`
         Dataset instance.
-    n : `int`
+    n_rows : `int`
         Amount of rows.
     figsize_sq : `int`
         Size of one square img.
@@ -34,24 +34,24 @@ def classify_ds_test(ds: TLClassifyDataset,
         which is 3 by default.
     """
     n_cols = 3
-    figsize_ln = ((figsize_sq+1)*n_cols, (figsize_sq+lines_span)*n)
+    figsize_ln = ((figsize_sq+1)*n_cols, (figsize_sq+lines_span)*n_rows)
     figsize_sq = (figsize_sq, figsize_sq)
-    fig, gs = plt.figure(figsize=figsize_ln), plt.GridSpec(n, n_cols)
+    fig, gs = plt.figure(figsize=figsize_ln), plt.GridSpec(n_rows, n_cols)
     axs = []
     if add_to_title is None:
         add_to_title_line = [None] * n_cols
-        add_to_title = [add_to_title_line] * n
+        add_to_title = [add_to_title_line] * n_rows
     else:
-        if (len(add_to_title) != n) and (len(add_to_title[0]) != n_cols):
-            raise Exception('Shape of arg add_to_title must'
+        if (len(add_to_title) != n_rows) and (len(add_to_title[0]) != n_cols):
+            raise Exception('Shape of arg "add_to_title" must'
                             'be equal to (n, 3).')
     if imgs_indexes is None:
-        imgs_indexes = get_indexes_for_vis(ds, n)
+        imgs_indexes = get_indexes_for_vis(ds, n_rows)
     else:
-        if (len(imgs_indexes) != n) and (len(imgs_indexes[0]) != n_cols):
+        if (len(imgs_indexes) != n_rows) and (len(imgs_indexes[0]) != n_cols):
             raise Exception('Shape of arg "imgs_indexes" must'
                             'be equal to (n, 3).')
-    for r in range(n*n_cols):
+    for r in range(n_rows*n_cols):
         axs.append(fig.add_subplot(gs[r]))
         row = r // n_cols
         col = r % n_cols
