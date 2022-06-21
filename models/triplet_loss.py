@@ -1,0 +1,281 @@
+
+import os
+from tqdm.notebook import tqdm
+
+import torch
+from torch.utils.data import DataLoader
+import IPython.display as IPy_disp
+
+from models.utils.base_model import BaseModel
+from models.utils.tml_mse_loss import TMLMSELoss
+from torch.nn import Module as nnModule
+from torch.nn import LeakyReLU
+from torch.nn import Linear
+from torch.nn import Conv2d
+from torch.nn import MaxPool2d
+from torch.nn import Flatten
+from torch.nn import Softmax
+from torch.nn import BatchNorm1d
+from torch.nn import Dropout
+
+from model_selection.metrics import CustomAccuracy
+from model_selection.metrics import CustomVarianceCriteria
+
+# from models.utils.tl_dataloader import TripletLossDataloader
+
+
+class ConvBlock(nnModule):
+    def __init__(self):
+        super(ConvBlock, self).__init__()
+        # Архитектура:
+        _layer_activation = LeakyReLU(0.05)
+        self.add_module('activation_LeakyReLU', _layer_activation)
+        
+        _conv_0 = Conv2d(1, 4, kernel_size=(5, 5), stride=(4, 4),
+                         padding=(2, 2), padding_mode='zeros', bias=True)
+        self.add_module('conv00', _conv_0)
+        
+        _conv_1 = Conv2d(4, 16, kernel_size=(5, 5), stride=(4, 4),
+                         padding=(2, 2), padding_mode='zeros', bias=True)
+        self.add_module('conv01', _conv_1)
+        
+        _conv_2 = Conv2d(16, 22, kernel_size=(3, 3), stride=(1, 1),
+                         padding=(1, 1), padding_mode='zeros', bias=True)        
+        self.add_module('conv02', _conv_2) 
+        
+        _layer_pooling = MaxPool2d(kernel_size=(2, 2))
+        self.add_module('pool_00', _layer_pooling)
+        
+        self.add_module('fltn', Flatten())
+        
+    def forward(self, x):
+        im_01_dwnsmpl = self.conv00(x)
+        im_01_dwnsmpl = self.activation_LeakyReLU(im_01_dwnsmpl)
+        im_02_dwnsmpl = self.conv01(im_01_dwnsmpl)
+        im_02_dwnsmpl = self.activation_LeakyReLU(im_02_dwnsmpl)
+        im_03_dwnsmpl = self.conv02(im_02_dwnsmpl)
+        im_03_dwnsmpl = self.pool_00(im_03_dwnsmpl)
+        im_03_dwnsmpl = self.activation_LeakyReLU(im_03_dwnsmpl)
+        vect = self.fltn(im_03_dwnsmpl)
+        return vect
+        
+
+class FullyConnectClassifyBlock(nnModule):
+    def __init__(self, numclasses):
+        super(FullyConnectClassifyBlock, self).__init__()
+        # Параметры:
+        self.numclasses = numclasses
+        # Архитектура:
+        _layer_activation = LeakyReLU(0.05)
+        self.add_module('activation_LeakyReLU', _layer_activation)
+        
+        _linear_0 = Linear(352, 256, bias=True)
+        self.add_module('linear00', _linear_0)
+        _dropout_0 = Dropout(0.5)
+        self.add_module('dropout00', _dropout_0)
+        
+        _batch_norm_0 = BatchNorm1d(256)
+        self.add_module('batch_norm00',  _batch_norm_0)
+        _linear_1 = Linear(256, 128, bias=True)
+        self.add_module('linear01', _linear_1)
+        
+        _linear_2 = Linear(128,  self.numclasses, bias=True)
+        self.add_module('linear02', _linear_2)
+       
+        _SftMax = Softmax(dim = -1)
+        self.add_module('SftMax', _SftMax)
+
+    def forward(self, x):
+        vect_01 = self.linear00(x)
+        vect_01 = self.dropout00(vect_01)
+        vect_01 = self.activation_LeakyReLU(vect_01)
+        vect_02 = self.batch_norm00(vect_01)
+        vect_02 = self.linear01(vect_02)
+        vect_02 = self.activation_LeakyReLU(vect_02)
+        vect_03 = self.linear02(vect_02)
+        vect_03 = self.SftMax(vect_03)
+        return vect_03
+    
+    
+class FullyConnectTLBlock(nnModule):
+    def __init__(self, n_out):
+        super(FullyConnectTLBlock, self).__init__()
+        # Параметры:
+        self.n_out = n_out
+        # Архитектура:
+        _layer_activation = LeakyReLU(0.05)
+        self.add_module('activation_LeakyReLU', _layer_activation)
+        
+        _linear_0 = Linear(352, 256, bias=True)
+        self.add_module('linear00', _linear_0)
+        _dropout_0 = Dropout(0.5)
+        self.add_module('dropout00', _dropout_0)
+        
+        _batch_norm_0 = BatchNorm1d(256)
+        self.add_module('batch_norm00',  _batch_norm_0)
+        _linear_1 = Linear(256, 128, bias=True)
+        self.add_module('linear01', _linear_1)
+        
+        _linear_2 = Linear(128,  self.n_out, bias=True)
+        self.add_module('linear02', _linear_2)
+
+    def forward(self, x):
+        vect_01 = self.linear00(x)
+        vect_01 = self.dropout00(vect_01)
+        vect_01 = self.activation_LeakyReLU(vect_01)
+        vect_02 = self.batch_norm00(vect_01)
+        vect_02 = self.linear01(vect_02)
+        vect_02 = self.activation_LeakyReLU(vect_02)
+        vect_03 = self.linear02(vect_02)
+        return vect_03
+
+
+class TripletLossModel(BaseModel):
+    def __init__(self, n_out):
+        super(TripletLossModel, self).__init__()
+        # Параметры:
+        self.n_out = n_out
+        # Архитектура:
+        self.conv2Dfeatures = ConvBlock()
+        self.fully_connect = FullyConnectTLBlock(self.n_out)
+        
+    def forward(self, x):
+        vect00 = self.conv2Dfeatures.forward(x)
+        vect01 = self.fully_connect.forward(vect00)
+        return vect01
+    
+    # Обучение на скорую руку:
+    def fit(self, dataset, epochs, wheights_path, batch_size=32,
+            validation_ds=None, vectorizer=None, flag='marka'):
+        dataloader = DataLoader(dataset, batch_size=32)
+        epochs_iter = tqdm(range(epochs), desc='epoch')
+        for epoch in epochs_iter:
+            epoch_loss = self.train_epoch(dataloader)
+            # callback:
+    
+    def train_epoch(self, dataloader):
+        self.train()
+        epoch_loss = 0
+        for it, batch in enumerate(dataloader):
+            batch_loss = self.train_on_batch(batch)
+            epoch_loss += batch_loss
+            print('.', end='')
+        print('')
+        return epoch_loss / (it+1)
+    
+    def train_on_batch(self, batch):
+        data_anc, data_pos, data_neg = self.prepare_data(batch)
+        out_anc = self.forward(data_anc)
+        out_pos = self.forward(data_pos)
+        out_neg = self.forward(data_neg)
+        loss = self.criterion(out_anc, out_pos, out_neg)
+        loss.backward()
+        self.optimizer.step()
+        self.optimizer.zero_grad()
+        return loss.cpu().item()
+    
+    def prepare_data(self, batch):
+        data_anc = batch['Anchor']
+        data_anc.to(self.device)
+        data_pos = batch['Positive']
+        data_pos.to(self.device)
+        data_neg = batch['Negative']
+        data_neg.to(self.device)
+        return data_anc, data_pos, data_neg
+    
+    def save_state(self, file_name):
+        torch.save(self.state_dict(), file_name)
+        return 0
+    
+    def load_state(self, file_name):
+        self.load_state_dict(torch.load(file_name))
+        return 0
+    
+
+class ClassificationForTLModel(BaseModel):
+    def __init__(self, numclasses):
+        super(ClassificationForTLModel, self).__init__()
+        # Параметры:
+        self.numclasses = numclasses
+        # Архитектура:
+        self.conv2Dfeatures = ConvBlock()
+        self.fully_connect = FullyConnectClassifyBlock(self.numclasses)
+
+    def forward(self, x):
+        vect00 = self.conv2Dfeatures.forward(x)
+        vect01 = self.fully_connect.forward(vect00)
+        return vect01
+        
+    # Обучение на скорую руку:
+    def fit(self, dataset, epochs, weights_path, batch_size=32, validation_ds=None):
+        # должно быть в экземпляре класса CallBack() или где-то там:
+        acc = CustomAccuracy()
+        max_val_acc = 0
+        min_val_loss = 1e8
+        # в целом норм:
+        dataloader = DataLoader(dataset, batch_size=batch_size,
+                                shuffle=True, drop_last=True)
+        epochs_iter = tqdm(range(epochs), desc='epoch')
+        for epoch in epochs_iter:
+            epoch_loss = self.train_epoch(dataloader)
+            # callback:
+    
+    def train_epoch(self, dataloader):
+        self.train()
+        epoch_loss = 0
+        for it, batch in enumerate(dataloader):
+            batch_loss = self.train_on_batch(batch)
+            epoch_loss += batch_loss
+            print('.', end='')
+        print('')
+        return epoch_loss / (it+1)
+    
+    def train_on_batch(self, batch):
+        data, classes = self.prepare_data(batch)
+        out = self.forward(data)
+        loss = self.criterion(out, classes)
+        loss.backward()
+        self.optimizer.step()
+        self.optimizer.zero_grad()
+        return loss.cpu().item()
+    
+    def prepare_data(self, batch):
+        data = batch[0].to(self.device)
+        classes = batch[1].to(self.device)
+        return data, classes
+    
+    def save_state(self, file_name):
+        torch.save(self.state_dict(), file_name)
+        return
+    
+    def split_save(self, file_names):
+        torch.save(self.conv2Dfeatures.state_dict(), file_names[0])
+        torch.save(self.fully_connect.state_dict(), file_names[1])
+    
+    def load_state(self, file_name):
+        self.load_state_dict(torch.load(file_name))
+        return
+    
+    def split_load(self, file_names):
+        self.conv2Dfeatures.load_state_dict(torch.load(file_names[0]))
+        self.fully_connect.load_state_dict(torch.load(file_names[1]))
+        return
+    
+    def scope(self, pred, true):
+        loss = self.criterion(pred, true)
+        return loss.cpu().item()
+    
+    def forward_dataset(self, ds, batch_size=100):
+        model_pred_p = torch.empty((0, self.numclasses), dtype=torch.float)
+        model_pred_lbl = torch.empty(0, dtype=torch.long)
+        true_lbl = torch.empty(0, dtype=torch.long)
+        self.eval()
+        dataloader = DataLoader(ds, batch_size=batch_size)
+        for batch in dataloader:
+            tens_img, tens_lbl = self.prepare_data(batch)
+            true_lbl = torch.cat([true_lbl, tens_lbl])
+            with torch.no_grad():
+                model_pred_p_t = self.forward(tens_img)
+            model_pred_p = torch.cat([model_pred_p, model_pred_p_t])
+            model_pred_lbl = torch.cat([model_pred_lbl, model_pred_p_t.argmax(axis=1)])
+        return model_pred_p, model_pred_lbl, true_lbl
