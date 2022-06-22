@@ -1,7 +1,26 @@
 
+from typing import Tuple
+
+from sklearn.metrics import f1_score
 import torch
 from torch.utils.data import DataLoader, Dataset
 from tqdm.notebook import tqdm
+
+
+def eval_classif_ds(ds: Dataset,
+            model: torch.nn.Module) -> Tuple[torch.tensor, torch.tensor]:
+    batch_size = 32
+    true_lbls = torch.empty(0, dtype=torch.long)
+    pred_lbls = torch.empty(0, dtype=torch.long)
+    model.eval()
+    dataloader = DataLoader(ds, batch_size=batch_size)
+    for batch in tqdm(dataloader):
+        img_batch, lbl_batch = batch
+        with torch.no_grad():
+            pred_p = model.forward(img_batch)
+        true_lbls = torch.cat([true_lbls, lbl_batch])
+        pred_lbls = torch.cat([pred_lbls, pred_p.argmax(axis=1)])
+    return true_lbls, pred_lbls
 
 
 class CustomAccuracy:
@@ -10,7 +29,7 @@ class CustomAccuracy:
         self.res_scope = None
         self.res_ds_scope = None
     
-    def scope(self, y_pred: torch.tensor, y_true: torch.tensor) -> float:
+    def scope(self, y_true: torch.tensor, y_pred: torch.tensor) -> float:
         """Evaluate accuracy over tensor data.
 
         Parameters
@@ -25,7 +44,7 @@ class CustomAccuracy:
         acc : `float`
             Accuracy.
         """
-        res = torch.eq(y_pred, y_true).sum() / y_pred.shape[0]
+        res = torch.eq(y_true, y_pred).sum() / y_pred.shape[0]
         self.res_scope = res
         return res.item()
 
@@ -44,20 +63,8 @@ class CustomAccuracy:
         acc : `float`
             Accuracy.
         """
-        l = len(ds)
-        batch_size= 32
-        dataloader = DataLoader(ds, batch_size=batch_size)
-        res = 0
-        model.eval()
-        iterator = tqdm(dataloader)
-        for batch in iterator:
-            img_batch, lbl_batch = batch
-            with torch.no_grad():
-                model_pred_p = model.forward(img_batch)
-            model_pred_lbl = model_pred_p.argmax(axis=1)
-            bath_acc = torch.eq(model_pred_lbl, lbl_batch).sum().item()
-            res += bath_acc
-        res = res / l
+        y_true, y_pred = eval_classif_ds(ds, model)
+        res = self.scope(y_true, y_pred)
         self.res_ds_scope = res
         return res
 
@@ -67,7 +74,7 @@ class CustomVarianceCriteria:
     def __init__(self):
         self.res_scope = None
         
-    def scope(self, x: torch.tensor, y: torch.tensor):
+    def scope(self, x: torch.tensor, y: torch.tensor) -> float:
         """Evaluate accuracy over tensor data.
 
         Parameters
@@ -102,8 +109,13 @@ class F1Score:
         self.res_scope = None
         self.res_ds_scope = None
 
-    def scope(self):
-        pass
+    def scope(self, y_true: torch.tensor, y_pred: torch.tensor) -> float:
+        res = f1_score(y_true, y_pred, average='weighted')
+        self.res_scope = res
+        return res
 
-    def ds_scope(self):
-        pass
+    def ds_scope(self, ds: Dataset, model: torch.nn.Module) -> float:
+        y_true, y_pred = eval_classif_ds(ds, model)
+        res = self.scope(y_true, y_pred)
+        self.res_ds_scope = res
+        return res
