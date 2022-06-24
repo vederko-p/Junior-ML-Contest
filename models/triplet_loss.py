@@ -1,6 +1,8 @@
 
 import os
+from typing import Callable
 from tqdm.notebook import tqdm
+import IPython.display as IPy_disp
 
 import torch
 from torch.utils.data import DataLoader
@@ -198,13 +200,18 @@ class ClassificationForTLModel(BaseModel):
         vect01 = self.fully_connect.forward(vect00)
         return vect01
 
-    def fit(self, dataset, epochs, batch_size=32):
+    def fit(self, dataset, epochs, batch_size=32,
+            callback: Callable[[nnModule, float], None] = None) -> None:
         dataloader = DataLoader(dataset, batch_size=batch_size,
                                 shuffle=True, drop_last=True)
-        epochs_iter = tqdm(range(epochs), desc='epoch')
-        for epoch in epochs_iter:
+        last_loss = 'none'
+        for ep in range(epochs):
+            IPy_disp.clear_output(True)
+            print(f'epoch: {ep+1}/{epochs} | loss: {last_loss}\n')
             epoch_loss = self.train_epoch(dataloader)
-            # callback:
+            last_loss = round(epoch_loss, 3)
+            if callback is not None:
+                callback(self, epoch_loss)
     
     def train_epoch(self, dataloader):
         self.train()
@@ -246,22 +253,3 @@ class ClassificationForTLModel(BaseModel):
         self.conv2Dfeatures.load_state_dict(torch.load(file_names[0]))
         self.fully_connect.load_state_dict(torch.load(file_names[1]))
         return
-    
-    def scope(self, pred, true):
-        loss = self.criterion(pred, true)
-        return loss.cpu().item()
-    
-    def forward_dataset(self, ds, batch_size=100):
-        model_pred_p = torch.empty((0, self.numclasses), dtype=torch.float)
-        model_pred_lbl = torch.empty(0, dtype=torch.long)
-        true_lbl = torch.empty(0, dtype=torch.long)
-        self.eval()
-        dataloader = DataLoader(ds, batch_size=batch_size)
-        for batch in dataloader:
-            tens_img, tens_lbl = self.prepare_data(batch)
-            true_lbl = torch.cat([true_lbl, tens_lbl])
-            with torch.no_grad():
-                model_pred_p_t = self.forward(tens_img)
-            model_pred_p = torch.cat([model_pred_p, model_pred_p_t])
-            model_pred_lbl = torch.cat([model_pred_lbl, model_pred_p_t.argmax(axis=1)])
-        return model_pred_p, model_pred_lbl, true_lbl
