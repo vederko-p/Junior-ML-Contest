@@ -117,9 +117,9 @@ class TripletLossDataset:
         a_img_tens, p_img_tens, n_img_tens = self.proc_imgs(a_ip, p_ip, n_ip)
         if img_meta:
             anc_name, pos_name, neg_name = self.get_meta(a_ip, p_ip, n_ip)
-            sample = {'Anc': a_img_tens, 'Anc_n': anc_name,
-                      'Pos': p_img_tens, 'Pos_n': pos_name,
-                      'Neg': n_img_tens, 'Neg_n': neg_name}
+            sample = {'Anchor': a_img_tens, 'Anchor_name': anc_name,
+                      'Positive': p_img_tens, 'Positive_name': pos_name,
+                      'Negative': n_img_tens, 'Negative_name': neg_name}
         else:
             sample = {'Anc': a_img_tens,
                       'Pos': p_img_tens,
