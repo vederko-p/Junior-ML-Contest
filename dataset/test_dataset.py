@@ -5,7 +5,7 @@ from typing import Tuple
 import numpy as np
 import matplotlib.pyplot as plt
 
-from dataset.classify_dataset import TLClassifyDataset
+from dataset.custom_datasets import TLClassifyDataset
 import dataset.utils.handle_random_state as hrs
 
 
