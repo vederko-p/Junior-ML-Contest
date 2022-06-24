@@ -7,8 +7,11 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm.notebook import tqdm
 
 
-def eval_classif_ds(ds: Dataset,
-            model: torch.nn.Module) -> Tuple[torch.tensor, torch.tensor]:
+def eval_classif_ds(
+        ds: Dataset,
+        model: torch.nn.Module,
+        probs: bool = False
+) -> Tuple[torch.tensor, torch.tensor]:
     batch_size = 32
     true_lbls = torch.empty(0, dtype=torch.long)
     pred_lbls = torch.empty(0, dtype=torch.long)
@@ -19,7 +22,8 @@ def eval_classif_ds(ds: Dataset,
         with torch.no_grad():
             pred_p = model.forward(img_batch)
         true_lbls = torch.cat([true_lbls, lbl_batch])
-        pred_lbls = torch.cat([pred_lbls, pred_p.argmax(axis=1)])
+        pred_add = pred_p if probs else pred_p.argmax(axis=1)
+        pred_lbls = torch.cat([pred_lbls, pred_add])
     return true_lbls, pred_lbls
 
 
