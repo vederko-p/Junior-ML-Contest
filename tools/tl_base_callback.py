@@ -7,7 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 import model_selection.metrics as metrics
 
 
-class CallBack:
+class ClassifyCallBack:
     """Learning callback class.
 
     Parameters
