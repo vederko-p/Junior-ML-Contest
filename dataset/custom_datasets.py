@@ -121,9 +121,9 @@ class TripletLossDataset:
                       'Positive': p_img_tens, 'Positive_name': pos_name,
                       'Negative': n_img_tens, 'Negative_name': neg_name}
         else:
-            sample = {'Anc': a_img_tens,
-                      'Pos': p_img_tens,
-                      'Neg': n_img_tens}
+            sample = {'Anchor': a_img_tens,
+                      'Positive': p_img_tens,
+                      'Negative': n_img_tens}
         return sample
 
     def proc_imgs(
