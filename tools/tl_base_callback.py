@@ -13,7 +13,7 @@ class BaseCallBack:
 
         Parameters
         ----------
-        writer : `from torch.utils.tensorboard.SummaryWriter`
+        writer : `torch.utils.tensorboard.SummaryWriter`
             Writer instance.
         test_ds : `torch.utils.data.Dataset`
             Test dataset.
