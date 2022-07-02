@@ -1,6 +1,5 @@
 
 from typing import Callable
-from tqdm.notebook import tqdm
 import IPython.display as IPy_disp
 
 import torch
@@ -76,7 +75,7 @@ class FullyConnectClassifyBlock(nnModule):
         _linear_2 = Linear(128,  self.numclasses, bias=True)
         self.add_module('linear02', _linear_2)
        
-        _SftMax = Softmax(dim = -1)
+        _SftMax = Softmax(dim=-1)
         self.add_module('SftMax', _SftMax)
 
     def forward(self, x):
@@ -192,11 +191,25 @@ class TripletLossModel(BaseModel):
         self.load_state_dict(torch.load(file_name))
         return 0
 
-    def split_load(self, file_names):
-        self.conv2Dfeatures.load_state_dict(torch.load(file_names[0]))
-        self.fully_connect.load_state_dict(torch.load(file_names[1]))
+    def split_load(self, file_names, map_location=None):
+        self.conv2Dfeatures.load_state_dict(
+            torch.load(file_names[0], map_location))
+        self.fully_connect.load_state_dict(
+            torch.load(file_names[1], map_location))
         return
-    
+
+    def load_conv_block(self, filepath, map_location=None):
+        self.conv2Dfeatures.load_state_dict(torch.load(filepath, map_location))
+
+    def load_fc_block(self, filepath, map_location=None):
+        self.fully_connect.load_state_dict(torch.load(filepath, map_location))
+
+    def load_warmstart_fc_block(self, filepath, map_location=None):
+        weights = torch.load(filepath, map_location)
+        del weights['linear02.weight']
+        del weights['linear02.bias']
+        _ = self.fully_connect.load_state_dict(weights, strict=False)
+
 
 class ClassificationForTLModel(BaseModel):
     def __init__(self, numclasses):
@@ -261,7 +274,9 @@ class ClassificationForTLModel(BaseModel):
         self.load_state_dict(torch.load(file_name))
         return
     
-    def split_load(self, file_names):
-        self.conv2Dfeatures.load_state_dict(torch.load(file_names[0]))
-        self.fully_connect.load_state_dict(torch.load(file_names[1]))
+    def split_load(self, file_names, map_location=None):
+        self.conv2Dfeatures.load_state_dict(
+            torch.load(file_names[0], map_location))
+        self.fully_connect.load_state_dict(
+            torch.load(file_names[1], map_location))
         return
