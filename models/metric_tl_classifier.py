@@ -16,7 +16,7 @@ class MarkskNN:
         self.ftrs_len = 128
         self.knn = None
 
-    def forward(self, x, k_neighs=3):
+    def forward(self, x, k_neighs=15):
         _, res, _, dist = self.knn.findNearest(x[:, :self.ftrs_len], k_neighs)
         return res[:, 0].astype(np.int32), dist[:, 0]
 
@@ -35,7 +35,7 @@ class ModelskNN:
         self.mdl_ftrs_len = 64
         self.knn = {}  # {mark_id: knn}
 
-    def forward(self, x, marks_res, k_neighs=3):
+    def forward(self, x, marks_res, k_neighs=15):
         models_res = []
         models_dist = []
         for i, mrk_id in enumerate(marks_res):
@@ -64,7 +64,7 @@ class MarksMah:
         self.lim = lim  # max amount of points from class to take into account
         self.mah = {}  # {mark_id: (centroid, cov)}
 
-    def forward(self, x, k_neighs=3):
+    def forward(self, x, k_neighs=15):
         marks_res = []
         dists_res = []
         for i in range(x.shape[0]):
@@ -98,7 +98,7 @@ class ModelsMah:
         self.lim = lim  # max amount of points from class to take into account
         self.mah = {}  # {model_id: (mark_id, centroid, cov)}
 
-    def forward(self, x, marks_res, k_neighs=3):
+    def forward(self, x, marks_res, k_neighs=15):
         models_res = []
         dists_res = []
         for i in range(x.shape[0]):
