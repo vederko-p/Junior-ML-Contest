@@ -6,6 +6,14 @@ from dataset import indexing
 from tools.vectorizer import Vectorizer
 
 
+def float_q(x):
+    try:
+        float(x)
+        return True
+    except ValueError:
+        return False
+
+
 def marks_indx_f(x):
     return (x[0],)
 
@@ -64,8 +72,7 @@ def load_table(filepath: str) -> dict:
     data = {col: [] for col in cols}
     for line in data_lines[1:]:
         vals_str = line[:-1].split(',')
-        vals = [(int(v) if str.isdigit(v) else float(v))
-                if v.replace('-', '').replace('.', '').isnumeric()
+        vals = [(int(v) if str.isdigit(v) else float(v)) if float_q(v)
                 else tuple(v.split(' ')) for v in vals_str]
         for col, val in zip(cols, vals):
             data[col].append(val)
