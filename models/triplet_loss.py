@@ -280,3 +280,17 @@ class ClassificationForTLModel(BaseModel):
         self.fully_connect.load_state_dict(
             torch.load(file_names[1], map_location))
         return
+
+
+class TripletLossFeaturesModel(nnModule):
+    def __init__(self, n_out: int, marks_model, models_model):
+        super(TripletLossFeaturesModel, self).__init__()
+        self.n_out = n_out
+        self.marks_model = marks_model
+        self.models_model = models_model
+
+    def forward(self, x):
+        marks_res = self.marks_model.forward(x)
+        models_res = self.models_model.forward(x)
+        cat_res = torch.cat([marks_res.squeeze(), models_res.squeeze()])
+        return cat_res
