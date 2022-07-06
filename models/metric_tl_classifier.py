@@ -87,29 +87,48 @@ class ModelskNN:
 
 
 class MarksMah:
-    def __init__(self, ftrs_base: FeaturesBase, lim: int = 1000):
+    def __init__(self, ftrs_base: FeaturesBase, lim: int = 1000,
+                 keys: List[str] = None):
         self.df_all = pd.DataFrame(ftrs_base.data_all)
+        self.keys = [] if keys is None else keys
         self.ftrs_len = 128
         self.lim = lim  # max amount of points from class to take into account
-        self.mah = {}  # {mark_id: (centroid, cov_inv)}
+        self.mah = {}  # {mark_id[, *keys]: (centroid, cov_inv)}
 
-    def forward(self, x, k_neighs=15):
+    def forward(self, x, k_neighs=15, keys: dict = None):
         marks_res = []
         dists_res = []
-        for i in range(x.shape[0]):
-            best_mark = None
-            best_dist = 1e10
-            for mrk_id, (centr, cov_inv) in self.mah.items():
-                dist = mahalanobis(x[i:i+1, :self.ftrs_len], centr, cov_inv)
-                if dist < best_dist:
-                    best_mark = mrk_id
-                    best_dist = dist
-            marks_res.append(best_mark)
-            dists_res.append(best_dist)
+        if not self.keys:
+            for i in range(x.shape[0]):
+                best_mark = None
+                best_dist = 1e10
+                for mrk_id, (centr, cov_inv) in self.mah.items():
+                    dist = mahalanobis(x[i:i + 1, :self.ftrs_len], centr, cov_inv)
+                    if dist < best_dist:
+                        best_mark = mrk_id
+                        best_dist = dist
+                marks_res.append(best_mark)
+                dists_res.append(best_dist)
+        else:
+            for i in range(x.shape[0]):
+                best_mark = None
+                best_dist = 1e10
+                for ks, (centr, cov_inv) in self.mah.items():
+                    mrk_id = ks[0]
+                    t = [keys[kn][i] == ksj for kn, ksj in zip(keys, ks[1:])]
+                    if sum(t):
+                        dist = mahalanobis(x[i:i + 1, :self.ftrs_len], centr, cov_inv)
+                        if dist < best_dist:
+                            best_mark = mrk_id
+                            best_dist = dist
+                    else:
+                        continue
+                marks_res.append(best_mark)
+                dists_res.append(best_dist)
         return np.array(marks_res), np.array(dists_res)
 
     def set_mah(self):
-        grouped = self.df_all.groupby('ID_mark')
+        grouped = self.df_all.groupby(['ID_mark'] + self.keys)
         for gk in grouped.groups:
             group = grouped.get_group(gk)
             gX = group[[f'f_{i}' for i in range(self.ftrs_len)]].values
