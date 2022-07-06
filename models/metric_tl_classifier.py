@@ -1,5 +1,5 @@
 
-from typing import Tuple
+from typing import Tuple, List
 from random import sample
 
 import numpy as np
@@ -11,33 +11,62 @@ from tools.feature_base import FeaturesBase
 
 
 class MarkskNN:
-    def __init__(self, ftrs_base: FeaturesBase):
+    def __init__(self, ftrs_base: FeaturesBase, keys: List[str] = None):
         self.df_all = pd.DataFrame(ftrs_base.data_all)
+        self.keys = [] if keys is None else keys
         self.ftrs_len = 128
-        self.knn = None
+        self.knn = {}
 
-    def forward(self, x, k_neighs=15):
-        _, res, _, dist = self.knn.findNearest(x[:, :self.ftrs_len], k_neighs)
+    def forward(self, x, k_neighs=15, keys: dict = None):
+        if self.keys:
+            res = np.array([]).reshape(0, 1)
+            dist = np.array([]).reshape(0, 1)
+            for i in range(x.shape[0]):
+                knn_key = tuple([keys[kn][i] for kn in self.keys])
+                _, res_i, _, dist_i = self.knn[knn_key].findNearest(
+                    x[i:i+1, :self.ftrs_len], k_neighs)
+                res = np.vstack([res, res_i])
+                dist = np.vstack([dist, dist_i[:, 0]])
+        else:
+            _, res, _, dist = self.knn[0].findNearest(x[:, :self.ftrs_len],
+                                                      k_neighs)
         return res[:, 0].astype(np.int32), dist[:, 0]
 
     def set_knn(self):
-        X = self.df_all[[f'f_{i}' for i in range(self.ftrs_len)]].values.astype(
-            np.float32)
-        y_marks = self.df_all['ID_mark'].values.astype(np.float32)
-        self.knn = cv.ml.KNearest_create()
-        self.knn.train(X, cv.ml.ROW_SAMPLE, y_marks)
+        if self.keys:
+            grouped = self.df_all.groupby(self.keys)
+            for gk in grouped.groups:
+                group = grouped.get_group(gk)
+                rng = [f'f_{i}' for i in range(self.ftrs_len)]
+                gX = group[rng].values.astype(np.float32)
+                gy_marks = group['ID_mark'].values.astype(np.float32)
+                self.knn[gk] = cv.ml.KNearest_create()
+                self.knn[gk].train(gX, cv.ml.ROW_SAMPLE, gy_marks)
+        else:
+            X = self.df_all[
+                [f'f_{i}' for i in range(self.ftrs_len)]
+            ].values.astype(np.float32)
+            y_marks = self.df_all['ID_mark'].values.astype(np.float32)
+            self.knn[0] = cv.ml.KNearest_create()
+            self.knn[0].train(X, cv.ml.ROW_SAMPLE, y_marks)
 
 
 class ModelskNN:
-    def __init__(self, ftrs_base: FeaturesBase):
+    def __init__(self, ftrs_base: FeaturesBase, keys: List[str] = None):
         self.df_all = pd.DataFrame(ftrs_base.data_all)
+        self.keys = [] if keys is None else keys
         self.mrk_ftrs_len = 128
         self.mdl_ftrs_len = 64
-        self.knn = {}  # {mark_id: knn}
+        self.knn = {}  # {mark_id[, *keys]: knn}
 
-    def forward(self, x, marks_res, k_neighs=15):
+    def forward(self, x, marks_res_0, k_neighs=15, keys: dict = None):
         models_res = []
         models_dist = []
+        if self.keys:
+            ks = [keys[kn] for kn in self.keys]
+            marks_res = zip(marks_res_0, *ks)
+        else:
+            marks_res = marks_res_0
         for i, mrk_id in enumerate(marks_res):
             _, res, _, dist = self.knn[mrk_id].findNearest(
                 x[i:i + 1, -self.mdl_ftrs_len:], k_neighs)
@@ -46,7 +75,7 @@ class ModelskNN:
         return np.array(models_res, dtype=np.int32), np.array(models_dist)
 
     def set_knn(self):
-        grouped = self.df_all.groupby('ID_mark')
+        grouped = self.df_all.groupby(['ID_mark'] + self.keys)
         for gk in grouped.groups:
             group = grouped.get_group(gk)
             self.knn[gk] = cv.ml.KNearest_create()
@@ -136,9 +165,12 @@ class MetricClassificationModel:
     def forward(
             self, x: np.array,
             mrks_k_neighs: int = 3,
-            mdls_k_neighs: int = 3
+            mdls_k_neighs: int = 3,
+            keys: dict = None
     ) -> Tuple[np.array, np.array, np.array, np.array]:
-        mrk_res, mrk_dist = self.marks_classifier.forward(x, mrks_k_neighs)
+        mrk_res, mrk_dist = self.marks_classifier.forward(x, mrks_k_neighs,
+                                                          keys=keys)
         mdl_res, mdl_dist = self.models_classifier.forward(x, mrk_res,
-                                                           mdls_k_neighs)
+                                                           mdls_k_neighs,
+                                                           keys=keys)
         return mrk_res, mrk_dist, mdl_res, mdl_dist
