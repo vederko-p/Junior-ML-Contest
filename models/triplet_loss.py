@@ -51,7 +51,49 @@ class ConvBlock(nnModule):
         im_03_dwnsmpl = self.activation_LeakyReLU(im_03_dwnsmpl)
         vect = self.fltn(im_03_dwnsmpl)
         return vect
-        
+
+
+class ConvBlockOld(nnModule):
+    def __init__(self):
+        super(ConvBlockOld, self).__init__()
+        # Архитектура:
+        _layer_activation = LeakyReLU(0.05)
+        self.add_module('activation_LeakyReLU', _layer_activation)
+
+        _conv_0 = Conv2d(1, 4, kernel_size=(5, 5), stride=(4, 4),
+                         padding=(2, 2), padding_mode='zeros', bias=True)
+        self.add_module('conv00', _conv_0)
+
+        _conv_1 = Conv2d(4, 16, kernel_size=(5, 5), stride=(4, 4),
+                         padding=(2, 2), padding_mode='zeros', bias=True)
+        self.add_module('conv01', _conv_1)
+
+        _conv_2 = Conv2d(16, 20, kernel_size=(5, 5), stride=(4, 4),
+                         padding=(2, 2), padding_mode='zeros', bias=True)
+        self.add_module('conv02', _conv_2)
+
+        _conv_3 = Conv2d(20, 22, kernel_size=(3, 3), stride=(1, 1),
+                         padding=(1, 1), padding_mode='zeros', bias=True)
+        self.add_module('conv03', _conv_3)
+
+        _layer_pooling = MaxPool2d(kernel_size=(2, 2))
+        self.add_module('pool_00', _layer_pooling)
+
+        self.add_module('fltn', Flatten())
+
+    def forward(self, x):
+        im_01_dwnsmpl = self.conv00(x)
+        im_01_dwnsmpl = self.activation_LeakyReLU(im_01_dwnsmpl)
+        im_02_dwnsmpl = self.conv01(im_01_dwnsmpl)
+        im_02_dwnsmpl = self.activation_LeakyReLU(im_02_dwnsmpl)
+        im_03_dwnsmpl = self.conv02(im_02_dwnsmpl)
+        im_03_dwnsmpl = self.activation_LeakyReLU(im_03_dwnsmpl)
+        im_04_dwnsmpl = self.conv02(im_03_dwnsmpl)
+        im_04_dwnsmpl = self.pool_00(im_04_dwnsmpl)
+        im_04_dwnsmpl = self.activation_LeakyReLU(im_04_dwnsmpl)
+        vect = self.fltn(im_04_dwnsmpl)
+        return vect
+
 
 class FullyConnectClassifyBlock(nnModule):
     def __init__(self, numclasses):
@@ -209,6 +251,13 @@ class TripletLossModel(BaseModel):
         del weights['linear02.weight']
         del weights['linear02.bias']
         _ = self.fully_connect.load_state_dict(weights, strict=False)
+
+
+class TripletLossModelOld(TripletLossModel):
+    def __init__(self, n_out):
+        super(TripletLossModelOld, self).__init__(n_out)
+        # Архитектура:
+        self.conv2Dfeatures = ConvBlockOld()
 
 
 class ClassificationForTLModel(BaseModel):
