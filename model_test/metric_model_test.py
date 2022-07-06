@@ -71,5 +71,3 @@ def test_classification_splited(ds_path: str, tl_model, metric_model,
     models_f1 = F1Score().scope(torch.tensor(lbls_mdls),
                                 torch.tensor(mdl_res))
     return marks_acc, models_acc, marks_f1, models_f1
-
-
