@@ -62,7 +62,7 @@ class MarksMah:
         self.df_all = pd.DataFrame(ftrs_base.data_all)
         self.ftrs_len = 128
         self.lim = lim  # max amount of points from class to take into account
-        self.mah = {}  # {mark_id: (centroid, cov)}
+        self.mah = {}  # {mark_id: (centroid, cov_inv)}
 
     def forward(self, x, k_neighs=15):
         marks_res = []
@@ -70,8 +70,8 @@ class MarksMah:
         for i in range(x.shape[0]):
             best_mark = None
             best_dist = 1e10
-            for mrk_id, (centr, cov) in self.mah.items():
-                dist = mahalanobis(x[i:i+1, :self.ftrs_len], centr, cov)
+            for mrk_id, (centr, cov_inv) in self.mah.items():
+                dist = mahalanobis(x[i:i+1, :self.ftrs_len], centr, cov_inv)
                 if dist < best_dist:
                     best_mark = mrk_id
                     best_dist = dist
@@ -86,8 +86,8 @@ class MarksMah:
             gX = group[[f'f_{i}' for i in range(self.ftrs_len)]].values
             indxs = sample(range(gX.shape[0]), min(self.lim, gX.shape[0]))
             centroid = gX[indxs].sum(axis=0)
-            cov = np.cov(gX[indxs], rowvar=False)
-            self.mah[gk] = (centroid, cov)
+            cov_inv = np.linalg.inv(np.cov(gX[indxs], rowvar=False))
+            self.mah[gk] = (centroid, cov_inv)
 
 
 class ModelsMah:
@@ -96,7 +96,7 @@ class ModelsMah:
         self.mrk_ftrs_len = 128
         self.mdl_ftrs_len = 64
         self.lim = lim  # max amount of points from class to take into account
-        self.mah = {}  # {model_id: (mark_id, centroid, cov)}
+        self.mah = {}  # {model_id: (mark_id, centroid, cov_inv)}
 
     def forward(self, x, marks_res, k_neighs=15):
         models_res = []
@@ -104,10 +104,10 @@ class ModelsMah:
         for i in range(x.shape[0]):
             best_model = None
             best_dist = 1e10
-            for mdl_id, (mrk_id, centr, cov) in self.mah.items():
+            for mdl_id, (mrk_id, centr, cov_inv) in self.mah.items():
                 if marks_res[i] == mrk_id:
-                    dist = mahalanobis(x[i:i+1, -self.mdl_ftrs_len:], centr,
-                                       cov)
+                    dist = mahalanobis(x[i:i+1, -self.mdl_ftrs_len:],
+                                       centr, cov_inv)
                     if dist < best_dist:
                         best_model = mdl_id
                         best_dist = dist
@@ -124,8 +124,8 @@ class ModelsMah:
             gX = group[[f'f_{i}' for i in rng]].values
             indxs = sample(range(gX.shape[0]), min(self.lim, gX.shape[0]))
             centroid = gX[indxs].sum(axis=0)
-            cov = np.cov(gX[indxs], rowvar=False)
-            self.mah[gk[1]] = (gk[0], centroid, cov)
+            cov_inv = np.linalg.inv(np.cov(gX[indxs], rowvar=False))
+            self.mah[gk[1]] = (gk[0], centroid, cov_inv)
 
 
 class MetricClassificationModel:
