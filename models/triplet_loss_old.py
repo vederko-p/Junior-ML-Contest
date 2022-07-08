@@ -422,4 +422,41 @@ class TL_005_concatenate(Layer_06):
         vector_res = torch.cat((vector_new_01, vector_old_01), axis=1)
         x = self._contiguous(vector_res)
 
-        return x
+        return x.squeeze()
+
+
+class TripletLossModelOld(Layer_06):
+    def __init__(self, conv_block, fc_block, imageSize,
+                 L1=0., L2=0., device=None, show=0, n_out=64):
+        super(TripletLossModelOld, self).__init__(
+            (imageSize[0], imageSize[1], 1))
+
+        self.class_name = self.__class__.__name__
+        self.n_out = n_out
+
+        self.imageSize = imageSize
+        self.regularizer = Regularizer(L1, L2)
+        self.show = show
+        self.L1 = L1
+        self.L2 = L2
+
+        if device is not None:
+            self.device = device if (
+                not isinstance(device, str)) else torch.device(device)
+        else:
+            self.device = device if (device is not None) else \
+                torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        self.conv_block = conv_block(device, L1, L2, show)
+        self.fc_block = fc_block(device, L1, L2, show)
+
+        self.to(self.device)
+        self.reset_parameters()
+
+    def forward(self, x):
+        vector_00 = self.conv_block(x)
+        vector_01 = self.fc_block(vector_00)
+        return vector_01
