@@ -6,7 +6,6 @@ import numpy as np
 from numpy.linalg import LinAlgError
 import pandas as pd
 import cv2 as cv
-from scipy.spatial.distance import mahalanobis
 
 from tools.feature_base import FeaturesBase
 
@@ -22,6 +21,18 @@ def quasy_inv_matr(m, eps=10**(-10)):
     S1[0:S_.shape[1]][0:S_.shape[0]] = S_
     return np.matmul(np.matmul(V.T, S1), U.T)
 
+
+def inv_conv_matr(m):
+    V = np.cov(m, rowvar=False)
+    VI = quasy_inv_matr(V, eps=1)
+    return VI
+
+
+def mahalanobis(x, Y, VI):
+    a = np.dot((x - Y), VI)
+    b = (x - Y).T
+    d = np.sqrt(np.einsum('ij,ji->i', a, b))
+    return np.abs(np.mean(d))
 
 
 class MarkskNN:
@@ -152,9 +163,8 @@ class MarksMah:
             group = grouped.get_group(gk)
             gX = group[[f'f_{i}' for i in range(self.ftrs_len)]].values
             indxs = sample(range(gX.shape[0]), min(self.lim, gX.shape[0]))
-            centroid = gX[indxs].sum(axis=0)
-            cov_inv = np.linalg.inv(np.cov(gX[indxs], rowvar=False))
-            self.mah[gk] = (centroid, cov_inv)
+            cov_inv = inv_conv_matr(gX[indxs])
+            self.mah[gk] = (gX[indxs], cov_inv)
 
 
 class ModelsMah:
@@ -179,7 +189,7 @@ class ModelsMah:
                         dist = mahalanobis(x[i:i+1, -self.mdl_ftrs_len:],
                                            centr, cov_inv)
                         if dist < best_dist:
-                            best_model = mdl_id
+                            best_model = mdl_id[0]
                             best_dist = dist
                 models_res.append(best_model)
                 dists_res.append(best_dist)
@@ -192,7 +202,8 @@ class ModelsMah:
                         mdl_id = ks[0]
                         t = [keys[kn][i] == ksj for kn, ksj in zip(keys, ks[1:])]
                         if sum(t):
-                            dist = mahalanobis(x[i:i + 1, :self.ftrs_len], centr, cov_inv)
+                            dist = mahalanobis(x[i:i + 1, -self.mdl_ftrs_len:],
+                                               centr, cov_inv)
                             if dist < best_dist:
                                 best_model = mdl_id
                                 best_dist = dist
@@ -212,13 +223,8 @@ class ModelsMah:
             indxs = sample(range(gX.shape[0]), min(self.lim, gX.shape[0]))
             if gX[indxs].shape[0] < 2:
                 continue
-            centroid = gX[indxs].sum(axis=0)
-            cov_m = np.cov(gX[indxs], rowvar=False)
-            try:
-                cov_inv = np.linalg.inv(cov_m)
-            except LinAlgError:
-                cov_inv = quasy_inv_matr(cov_m)
-            self.mah[tuple([gk[1]] + self.keys)] = (gk[0], centroid, cov_inv)
+            cov_inv = inv_conv_matr(gX[indxs])
+            self.mah[tuple([gk[1]] + self.keys)] = (gk[0], gX[indxs], cov_inv)
 
 
 class MetricClassificationModel:
