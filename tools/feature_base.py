@@ -98,7 +98,8 @@ class FeaturesBase:
         for i in range(self.features_len):
             self.data_all[f'f_{i}'] = []
 
-    def fill_from_path(self, ds_path: str, model, crop: bool = False):
+    def fill_from_path(self, ds_path: str, model, crop: bool = False,
+                       custom_vectorizer: Vectorizer = None):
         if self.vect is None:
             raise Exception('You must create empty base first.')
 
@@ -109,7 +110,9 @@ class FeaturesBase:
 
         self.fill_marks_data(lbls_mrks_code)
         self.fill_models_data(lbls_mdls_code)
-        self.fill_all_data(images, indexes, lbls_mrks, lbls_mdls, model, crop)
+        self.fill_all_data(images, indexes,
+                           lbls_mrks, lbls_mdls, model,
+                           crop, custom_vectorizer)
 
     def fill_marks_data(self, marks_labels_code: dict) -> None:
         for mrk_n, mrk_id in marks_labels_code.items():
@@ -127,8 +130,12 @@ class FeaturesBase:
                       imgs: List[str], indxs: List[tuple],
                       marks_labels: List[int],
                       models_labels: List[int],
-                      model, crop:bool = False) -> None:
-        self.vect.vectorize_from_paths(imgs, model, crop)
+                      model, crop: bool = False,
+                      custom_vectorizer: Vectorizer = None) -> None:
+        if custom_vectorizer is None:
+            self.vect.vectorize_from_paths(imgs, model, crop)
+        else:
+            self.vect = custom_vectorizer
         iterator = enumerate(zip(indxs, marks_labels, models_labels))
         for i, (indx, mrk_lbl, mdl_lbl) in iterator:
             view = 1 if indx[2] == 'normal' else 0
