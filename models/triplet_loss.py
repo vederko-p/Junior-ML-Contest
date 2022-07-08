@@ -293,4 +293,4 @@ class TripletLossFeaturesModel(nnModule):
         marks_res = self.marks_model.forward(x)
         models_res = self.models_model.forward(x)
         cat_res = torch.cat([marks_res.squeeze(), models_res.squeeze()])
-        return cat_res
+        return cat_res.unsqueeze(0)
