@@ -29,14 +29,17 @@ class Vectorizer:
         self.lables_res = labels
         self.vects_res = vectors
 
-    def vectorize_from_paths(self, imgs_paths: List[str], model) -> None:
+    def vectorize_from_paths(self, imgs_paths: List[str],
+                             model, crop: bool = False) -> None:
         model.eval()
         vectors = torch.empty((0, model.n_out), dtype=torch.float)
         for i, ip in enumerate(tqdm(imgs_paths)):
             img_array = img_proc.open_image(ip)
+            if crop:
+                img_array = img_proc.custom_crop(img_array)
             img_array = def_augs.TL_no_aug_transform_128(image=img_array)['image']
             img_tens = torch.permute(torch.FloatTensor(img_array), (2, 0, 1))
             with torch.no_grad():
                 vect = model.forward(img_tens.unsqueeze(0))
-            vectors = torch.cat([vectors, vect.unsqueeze(0)])
+            vectors = torch.cat([vectors, vect])
         self.vects_from_paths_res = vectors
