@@ -75,8 +75,7 @@ def test_classification_splited(ds_path: str, tl_model, metric_model,
 
 
 def test_classification_joint(ds_path: str, tl_marks_model, tl_models_model,
-                              metric_model, view_model, truck_model,
-                              crop: bool = False):
+                              metric_model, view_model, truck_model):
     # Подготовка:
     imgs_pths, _, lbls_mrks, _, lbls_mdls, _ = collect_ds_t(ds_path)
     # Вычисление признаков:
@@ -94,6 +93,7 @@ def test_classification_joint(ds_path: str, tl_marks_model, tl_models_model,
         'View': eval_classif_paths(imgs_pths, view_model).squeeze().tolist(),
         'Truck': eval_classif_paths(imgs_pths, truck_model).squeeze().tolist()
     }
+    # Распознавание:
     x = vectorizer_joint.vects_from_paths_res.numpy().astype(np.float32)
     mrk_res, _, mdl_res, _ = metric_model.forward(x, keys=keys)
     # Accuracy:
@@ -107,3 +107,26 @@ def test_classification_joint(ds_path: str, tl_marks_model, tl_models_model,
     models_f1 = F1Score().scope(torch.tensor(lbls_mdls),
                                 torch.tensor(mdl_res))
     return marks_acc, models_acc, marks_f1, models_f1
+
+
+def test_distance(imgs_pths, tl_marks_model, tl_models_model,
+                  metric_model, view_model, truck_model):
+    # Вычисление признаков:
+    vectorizer_new = Vectorizer()
+    vectorizer_new.vectorize_from_paths(imgs_pths, tl_marks_model)
+    vectorizer_old = Vectorizer()
+    vectorizer_old.vectorize_from_paths(imgs_pths, tl_models_model, crop=True)
+    vectorizer_joint = Vectorizer()
+    vectorizer_joint.vects_from_paths_res = torch.cat(
+        [vectorizer_new.vects_from_paths_res,
+         vectorizer_old.vects_from_paths_res],
+        axis=1)
+    # Ракурс / Грузовик:
+    keys = {
+        'View': eval_classif_paths(imgs_pths, view_model).squeeze().tolist(),
+        'Truck': eval_classif_paths(imgs_pths, truck_model).squeeze().tolist()
+    }
+    # Распознавание:
+    x = vectorizer_joint.vects_from_paths_res.numpy().astype(np.float32)
+    _, mrk_dist, _, mdl_dist = metric_model.forward(x, keys=keys)
+    return mrk_dist, mdl_dist
