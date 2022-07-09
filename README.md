@@ -60,8 +60,8 @@ Junior ML Contest. Проект представляет собой резуль
 
 На основе обработанной выборки были построены и обучены Triplet Loss модели по
 маркам и моделям. Результаты представлены в ноутбуках:
-* [2.1. Triplet Loss Model. Marks](https://github.com/vederko-p/Junior-ML-Contest/blob/description/2.1.%20Triplet%20Loss%20Model.%20Marks.ipynb);
-* [2.2. Triplet Loss Model. Models](https://github.com/vederko-p/Junior-ML-Contest/blob/description/2.2.%20Triplet%20Loss%20Model.%20Models.ipynb).
+* [2.1. Triplet Loss Model. Marks](https://github.com/vederko-p/Junior-ML-Contest/blob/description/2.1.%20Triplet%20Loss%20Model.%20Marks.ipynb)
+* [2.2. Triplet Loss Model. Models](https://github.com/vederko-p/Junior-ML-Contest/blob/description/2.2.%20Triplet%20Loss%20Model.%20Models.ipynb)
 
 На основе метода главных компонент были представлены результирующие признаковые
 описания изображений в трехмерном пространстве. Соответствующие результаты
@@ -85,8 +85,8 @@ Junior ML Contest. Проект представляет собой резуль
 Это разумно ввиду того, что изображения визуально отличимы по данным классам,
 что проявляется в уровне качества классификации соответствующих моделей.
 Результаты приведены в соответсвующих ноутбуках:
-* [5.1. View classifier](https://github.com/vederko-p/Junior-ML-Contest/blob/description/5.1.%20View%20classifier.ipynb);
-* [5.2. Truck classifier](https://github.com/vederko-p/Junior-ML-Contest/blob/description/5.2.%20Truck%20classifier.ipynb);
+* [5.1. View classifier](https://github.com/vederko-p/Junior-ML-Contest/blob/description/5.1.%20View%20classifier.ipynb)
+* [5.2. Truck classifier](https://github.com/vederko-p/Junior-ML-Contest/blob/description/5.2.%20Truck%20classifier.ipynb)
 
 В итоге это может улучшить точность распознавания ввиду некоторой разгрузки
 метрических классификаторов, что демонстрируется в соответствующем ноутбуке, в
@@ -112,4 +112,5 @@ OPTICS.
 уменьшить число признаков, чем можно воспользоваться следующим образом. Можно
 использовать две модели, одну на основе целых изображений, вторую на основе
 кропнутых изображений. Результирующим набором признаков будет конкатенация
-результатов двух моделей.
+результатов двух моделей;
+* В ближайшем будущем работу планируется довести до научной публикации.
