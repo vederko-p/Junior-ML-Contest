@@ -10,7 +10,9 @@ from typing import Tuple, Callable
 from tqdm.notebook import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
+
 from dataset import indexing
+import dataset.utils.handle_random_state as hrs
 
 
 def sample_data(
@@ -43,7 +45,7 @@ def sample_data(
     Returns
     -------
     sampled_images : `dict`
-        Dict os sampled images: {mark / mark+model: images}.
+        Dict of sampled images: {mark / mark+model: images}.
     """
     folders = os.listdir(ds_path)
     indexes = indexing.get_indexes(folders)
@@ -84,14 +86,9 @@ def sample_images(collected: dict,
         images_len = len(images)
         if images_len > min_th:
             q = min(images_len, max_th) if max_th is not None else images_len
-            handle_random_state(random_state)
+            hrs.handle_random_state(random_state)
             sampled_images[mark].extend(random.sample(images, q))
     return sampled_images
-
-
-def handle_random_state(random_state: int = None) -> None:
-    if random_state is not None:
-        random.seed(random_state)
 
 
 def check_size(imgs: dict) -> bool:
@@ -326,6 +323,6 @@ def sample_to_test(
     for mark, imgs in collected_imgs.items():
         train_size = len(imgs)
         test_size_int = ceil(test_size * train_size)
-        handle_random_state(random_state)
+        hrs.handle_random_state(random_state)
         chosen_to_test[mark] = random.sample(imgs, test_size_int)
     return chosen_to_test
