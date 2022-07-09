@@ -11,8 +11,9 @@ from dataset import default_augmentations as def_augs
 
 class Vectorizer:
     def __init__(self):
-        self.lables_res = None
+        self.labels_res = None
         self.vects_res = None
+        self.labels_from_paths_res = None
         self.vects_from_paths_res = None
 
     def vectorize(self, ds, model, batch_size: int = 32) -> None:
@@ -26,11 +27,12 @@ class Vectorizer:
                 vects = model.forward(imgs)
             labels = torch.cat([labels, lbls])
             vectors = torch.cat([vectors, vects])
-        self.lables_res = labels
+        self.labels_res = labels
         self.vects_res = vectors
 
     def vectorize_from_paths(self, imgs_paths: List[str],
-                             model, crop: bool = False) -> None:
+                             model, crop: bool = False,
+                             labels: list = None) -> None:
         model.eval()
         vectors = torch.empty((0, model.n_out), dtype=torch.float)
         for i, ip in enumerate(tqdm(imgs_paths)):
@@ -42,4 +44,5 @@ class Vectorizer:
             with torch.no_grad():
                 vect = model.forward(img_tens.unsqueeze(0))
             vectors = torch.cat([vectors, vect])
+        self.labels_from_paths_res = labels
         self.vects_from_paths_res = vectors
