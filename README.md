@@ -20,11 +20,7 @@ Junior ML Contest. Проект представляет собой резуль
 
 **Данные**: Изображения автомобилей различных марок, моделей, годов и ракурсов:
 
-<<<<<<< HEAD
 ![Пример данных](https://github.com/vederko-p/Junior-ML-Contest/blob/master/imgs/data%20examples.png)
-=======
-![Пример данных]([imgs/data examples.png](https://github.com/vederko-p/Junior-ML-Contest/blob/master/imgs/data%20examples.png))
->>>>>>> e2196bf6dbd17be295ac370a01f2822bc60a0bda
 
 Данные предоставляются заказчиком.
 
@@ -52,11 +48,7 @@ Junior ML Contest. Проект представляет собой резуль
 
 Схема работы результирующей системы:
 
-<<<<<<< HEAD
 ![Схема системы распознавания](https://github.com/vederko-p/Junior-ML-Contest/blob/master/imgs/system%20architecture.png)
-=======
-![Схема системы распознавания]([imgs/system architecture.png](https://github.com/vederko-p/Junior-ML-Contest/blob/master/imgs/system%20architecture.png))
->>>>>>> e2196bf6dbd17be295ac370a01f2822bc60a0bda
 
 Таким образом в процессе обучения из базы размеченных изображений формируется
 база признаковых описаний, над которой строятся метрические классификаторы, 
@@ -78,11 +70,7 @@ Junior ML Contest. Проект представляет собой резуль
 Для построения базы признаковых описаний использовалась следующая структура
 данных:
 
-<<<<<<< HEAD
 ![База признаковых описаний](https://github.com/vederko-p/Junior-ML-Contest/blob/master/imgs/data%20base.png)
-=======
-![База признаковых описаний]([imgs/data base.png](https://github.com/vederko-p/Junior-ML-Contest/blob/master/imgs/data%20base.png))
->>>>>>> e2196bf6dbd17be295ac370a01f2822bc60a0bda
 
 Метрические модели классификации включают в себя логику подключения к базе
 признаковых описаний для получения необходимой информации для обучения.
@@ -92,11 +80,7 @@ Junior ML Contest. Проект представляет собой резуль
 Одной из модификаций системы может быть условное разделение базы признаковых
 описаний на четыре непересекающихся области:
 
-<<<<<<< HEAD
 ![Модификация системы](https://github.com/vederko-p/Junior-ML-Contest/blob/master/imgs/features%20base%20modification.png)
-=======
-![Модификация системы]([imgs/features base modification.png](https://github.com/vederko-p/Junior-ML-Contest/blob/master/imgs/features%20base%20modification.png))
->>>>>>> e2196bf6dbd17be295ac370a01f2822bc60a0bda
 
 Это разумно ввиду того, что изображения визуально отличимы по данным классам,
 что проявляется в уровне качества классификации соответствующих моделей.
