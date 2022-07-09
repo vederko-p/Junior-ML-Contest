@@ -45,7 +45,7 @@ def sample_data(
     Returns
     -------
     sampled_images : `dict`
-        Dict os sampled images: {mark / mark+model: images}.
+        Dict of sampled images: {mark / mark+model: images}.
     """
     folders = os.listdir(ds_path)
     indexes = indexing.get_indexes(folders)
